@@ -1,0 +1,48 @@
+FROM --platform=linux/amd64 ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Paquetes necesarios para compilar binutils/gcc y generar un ISO con GRUB.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    bison \
+    flex \
+    texinfo \
+    curl \
+    ca-certificates \
+    grub-pc-bin \
+    grub-common \
+    xorriso \
+    nasm \
+    libgmp-dev \
+    libmpfr-dev \
+    libmpc-dev \
+  && rm -rf /var/lib/apt/lists/*
+
+# Tripleta del cross-compiler y directorio de instalación.
+ENV TARGET=i686-elf
+ENV PREFIX=/opt/cross
+ENV PATH="${PREFIX}/bin:${PATH}"
+
+# Descarga y compila binutils y gcc (C-only) sin headers del sistema.
+RUN mkdir -p /tmp/build && cd /tmp/build \
+  && curl -LO https://ftp.gnu.org/gnu/binutils/binutils-2.41.tar.gz \
+  && curl -LO https://ftp.gnu.org/gnu/gcc/gcc-13.2.0/gcc-13.2.0.tar.gz \
+  && tar -xf binutils-2.41.tar.gz \
+  && tar -xf gcc-13.2.0.tar.gz \
+  && mkdir -p binutils-build gcc-build \
+  && cd binutils-build \
+  && ../binutils-2.41/configure --target=${TARGET} --prefix=${PREFIX} --with-sysroot --disable-nls --disable-werror \
+  && make -j"$(nproc)" \
+  && make install \
+  && cd /tmp/build/gcc-build \
+  && ../gcc-13.2.0/configure --target=${TARGET} --prefix=${PREFIX} --disable-nls --enable-languages=c --without-headers \
+  && make -j"$(nproc)" all-gcc \
+  && make -j"$(nproc)" all-target-libgcc \
+  && make install-gcc \
+  && make install-target-libgcc \
+  && cd / \
+  && rm -rf /tmp/build
+
+# Carpeta de trabajo montada desde el host.
+WORKDIR /work

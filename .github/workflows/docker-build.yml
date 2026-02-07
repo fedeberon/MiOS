@@ -1,0 +1,54 @@
+name: Docker Build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build toolchain image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./myos
+          file: ./myos/Dockerfile.toolchain
+          platforms: linux/amd64
+          tags: fedeberon/mi-os:toolchain-0.1.0
+          load: true
+          push: false
+
+      - name: Build runtime image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./myos
+          file: ./myos/Dockerfile
+          platforms: linux/amd64
+          tags: myos-build:ci
+          load: true
+          push: false
+
+      - name: Build ISO with container
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE/myos":/work \
+            -w /work \
+            myos-build:ci \
+            make clean all
+
+      - name: Upload ISO artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: myos-iso
+          path: myos/dist/myos.iso
+          if-no-files-found: error
