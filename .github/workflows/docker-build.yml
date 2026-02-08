@@ -24,19 +24,17 @@ jobs:
           context: ./myos
           file: ./myos/Dockerfile.toolchain
           platforms: linux/amd64
-          tags: fedeberon/mi-os:toolchain-0.1.0
+          tags: myos-toolchain:ci
           load: true
           push: false
 
       - name: Build runtime image
-        uses: docker/build-push-action@v6
-        with:
-          context: ./myos
-          file: ./myos/Dockerfile
-          platforms: linux/amd64
-          tags: fedeberon/mi-os:latest
-          load: true
-          push: false
+        run: |
+          docker build \
+            --platform linux/amd64 \
+            --build-arg TOOLCHAIN_IMAGE=myos-toolchain:ci \
+            -t myos-build:ci \
+            ./myos
 
       - name: Build ISO with container
         run: |
@@ -86,6 +84,8 @@ jobs:
           context: ./myos
           file: ./myos/Dockerfile
           platforms: linux/amd64
+          build-args: |
+            TOOLCHAIN_IMAGE=fedeberon/mi-os:toolchain-0.1.0
           tags: |
             fedeberon/mi-os:latest
             fedeberon/mi-os:${{ github.sha }}
