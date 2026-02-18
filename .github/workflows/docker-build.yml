@@ -6,6 +6,12 @@ on:
       - main
   pull_request:
   workflow_dispatch:
+    inputs:
+      publish_dockerhub:
+        description: "Publicar imagenes en Docker Hub"
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   build:
@@ -54,7 +60,7 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     needs: build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'workflow_dispatch' && inputs.publish_dockerhub == true
 
     steps:
       - name: Checkout

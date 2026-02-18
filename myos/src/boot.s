@@ -1,20 +1,26 @@
-; Header Multiboot v1 para que GRUB reconozca el kernel.
-SECTION .multiboot
+; Multiboot v1 header so GRUB can load this kernel.
+section .multiboot
 align 4
     dd 0x1BADB002
     dd 0x0
     dd -(0x1BADB002 + 0x0)
 
-; Código de arranque en 32 bits.
-SECTION .text
+section .bss
+align 16
+stack_bottom:
+    resb 16384
+stack_top:
+
+section .text
 bits 32
 
 global _start
 extern kernel_main
 
-; Punto de entrada: deshabilita interrupciones, llama al kernel y se queda en halt.
+; First instruction executed after GRUB transfers control.
 _start:
     cli
+    mov esp, stack_top
     call kernel_main
 
 .hang:

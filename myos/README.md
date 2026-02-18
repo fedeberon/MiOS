@@ -1,36 +1,41 @@
 # MyOS
 
-## Construcción (toolchain una sola vez)
+MyOS es un kernel x86 (32 bits) minimo que bootea con GRUB (Multiboot v1),
+usa consola VGA en modo texto y ya tiene base de interrupciones (GDT/IDT/PIC/PIT).
 
-1. Construir la imagen base del toolchain (solo la primera vez):
-   docker build -f Dockerfile.toolchain -t myos-toolchain .
+## Construccion
 
-2. (Opcional) Publicar en Docker Hub:
-   docker tag myos-toolchain fedeberon/mi-os:toolchain-0.1.0
-   docker push fedeberon/mi-os:toolchain-0.1.0
+1. Construir imagen base de toolchain (si no esta publicada localmente):
+   `docker build -f Dockerfile.toolchain -t myos-toolchain .`
 
-## Construcción rápida del ISO
+2. Construir imagen runtime:
+   `docker build -t myos-build .`
 
-Usa el Dockerfile liviano que reusa el toolchain:
+3. Generar ISO:
+   `docker run --rm -v "$PWD":/work -w /work myos-build make clean all`
 
-1. Construir la imagen liviana:
-   docker build -t myos-build .
+Salida esperada: `dist/myos.iso`.
 
-2. Construir el ISO:
-   docker run --rm -v "$PWD":/work -w /work myos-build make clean all
+## Prueba rapida en emulador
 
-Esto genera `dist/myos.iso`, un ISO booteable con GRUB Multiboot (v1) que imprime:
-- "Hello from MyOS kernel!"
-- "If you can read this, GRUB -> kernel works."
-Luego entra en un loop de polling PS/2 y muestra teclas ASCII básicas en pantalla.
+Con QEMU (x86):
 
-## Archivos del proyecto
+`qemu-system-i386 -cdrom dist/myos.iso -boot d -m 64`
 
-- `Dockerfile.toolchain`: imagen pesada que compila el cross-compiler `i686-elf` y utilidades.
-- `Dockerfile`: imagen liviana que reusa el toolchain ya compilado.
-- `Makefile`: automatiza la compilación del kernel, el link y la creación del ISO con GRUB.
-- `linker.ld`: script del linker que coloca el kernel a partir de 1 MiB y ordena secciones.
-- `grub.cfg`: configuración mínima de GRUB para cargar el kernel.
-- `src/boot.s`: stub de arranque con header Multiboot v1 y salto a `kernel_main`.
-- `src/kernel.c`: código del kernel que escribe texto en VGA.
-- `.gitignore`: ignora artefactos de build.
+## Estructura de archivos
+
+- `Dockerfile.toolchain`: compila e instala cross-compiler `i686-elf` y utilidades.
+- `Dockerfile`: imagen liviana que reutiliza el toolchain.
+- `Makefile`: reglas de build, link y empaquetado de ISO.
+- `linker.ld`: layout de secciones y direccion de carga (1 MiB).
+- `grub.cfg`: entrada de boot de GRUB.
+- `src/boot.s`: entrada inicial de kernel y setup de stack.
+- `src/kernel.c`: secuencia de inicializacion del kernel.
+- `src/console.c`: salida de texto por VGA.
+- `src/arch/x86/gdt.c`: Global Descriptor Table.
+- `src/arch/x86/idt.c`: Interrupt Descriptor Table + handler central.
+- `src/arch/x86/interrupts.s`: stubs ASM de ISR/IRQ y flush de GDT.
+- `src/arch/x86/pic.c`: controlador PIC 8259.
+- `src/arch/x86/pit.c`: timer PIT y contador de ticks.
+- `src/include/`: interfaces publicas de modulos.
+- `docs/ARCHITECTURE.md`: explicacion detallada de arquitectura y flujo.
