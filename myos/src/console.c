@@ -26,6 +26,14 @@ void console_putc(char c) {
     if (c == '\n') {
         cursor_col = 0;
         cursor_row++;
+    } else if (c == '\b') {
+        if (cursor_col > 0) {
+            cursor_col--;
+        } else if (cursor_row > 0) {
+            cursor_row--;
+            cursor_col = (uint8_t)(VGA_WIDTH - 1U);
+        }
+        VGA_BUFFER[cursor_row * VGA_WIDTH + cursor_col] = ((uint16_t)VGA_COLOR << 8) | (uint8_t)' ';
     } else {
         VGA_BUFFER[cursor_row * VGA_WIDTH + cursor_col] = ((uint16_t)VGA_COLOR << 8) | (uint8_t)c;
         cursor_col++;

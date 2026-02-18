@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <kernel/console.h>
+#include <kernel/shell.h>
 #include <x86/gdt.h>
 #include <x86/idt.h>
 #include <x86/pit.h>
@@ -8,7 +9,7 @@
  * Kernel entry point called from boot assembly.
  *
  * Brings up low-level CPU tables (GDT/IDT), configures PIC/PIT,
- * enables interrupts, and then idles while timer IRQs keep ticking.
+ * enables interrupts, and enters the interactive shell loop.
  */
 void kernel_main(void) {
     console_clear();
@@ -25,17 +26,11 @@ void kernel_main(void) {
 
     __asm__ volatile ("sti");
     console_write("[OK] Interrupts enabled\n");
-    console_write("System ready.\n");
+    console_write("System ready.\n\n");
+    shell_init();
 
-    uint32_t last_tick = 0;
     for (;;) {
-        uint32_t now = pit_ticks();
-        if (now != last_tick && (now % 100U) == 0U) {
-            console_write("tick=");
-            console_write_u32(now);
-            console_write("\n");
-            last_tick = now;
-        }
+        shell_poll();
         __asm__ volatile ("hlt");
     }
 }

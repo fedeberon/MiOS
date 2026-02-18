@@ -7,8 +7,9 @@ Este documento describe que hace cada componente del kernel en esta etapa.
 1. GRUB carga `kernel.bin` usando Multiboot v1.
 2. `src/boot.s` toma control en `_start`, configura un stack propio y llama `kernel_main`.
 3. `src/kernel.c` inicializa GDT, IDT, PIC y PIT.
-4. Se habilitan interrupciones (`sti`) y el kernel entra en bucle `hlt`.
+4. Se habilitan interrupciones (`sti`) y se inicializa el shell interactivo.
 5. El PIT (IRQ0) genera ticks periodicos, atendidos por `isr_handler`.
+6. El teclado (IRQ1) genera scancodes que se convierten a texto y comandos.
 
 ## Que resuelve cada modulo
 
@@ -19,7 +20,17 @@ Este documento describe que hace cada componente del kernel en esta etapa.
 
 - `src/console.c`
   - Consola VGA en modo texto (0xB8000).
-  - API: limpiar pantalla, escribir texto, imprimir numeros.
+  - API: limpiar pantalla, escribir texto, imprimir numeros y manejar backspace.
+
+- `src/keyboard.c`
+  - Driver minimo de teclado PS/2 por IRQ1.
+  - Traduce scancodes set 1 a ASCII basico.
+  - Mantiene buffer de linea hasta Enter.
+
+- `src/shell.c`
+  - Shell interactivo de una linea.
+  - Comandos: `help`, `clear`, `echo`, `ticks`, `reboot`.
+  - Parser minimalista sin libc.
 
 - `src/arch/x86/gdt.c`
   - Crea una GDT plana minima:
@@ -40,6 +51,7 @@ Este documento describe que hace cada componente del kernel en esta etapa.
   - `isr_handler`:
     - Excepcion CPU: imprime vector/error y detiene.
     - IRQ0: incrementa ticks.
+    - IRQ1: procesa entrada de teclado.
     - IRQ hardware: envia EOI al PIC.
 
 - `src/arch/x86/pic.c`
@@ -59,10 +71,12 @@ Este documento describe que hace cada componente del kernel en esta etapa.
 - Consola VGA funcional.
 - Excepciones CPU enrutadas.
 - Timer por interrupciones funcional (ticks).
+- Teclado funcional por interrupcion (IRQ1).
+- Shell interactivo funcional con comandos basicos.
 
 ## Proximos pasos sugeridos
 
-1. Driver de teclado por IRQ1 (sin polling).
-2. Scroll en consola VGA.
+1. Scroll real de consola VGA (en vez de wrap a fila 0).
+2. Soporte de teclado extendido (Shift/Ctrl/Flechas).
 3. Pagina de memoria (paging) + asignador fisico.
-4. Scheduler cooperativo minimo.
+4. VFS minimo para cargar archivos/config desde disco.

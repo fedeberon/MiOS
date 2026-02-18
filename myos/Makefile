@@ -16,6 +16,8 @@ ISO_DIR = $(BUILD_DIR)/isofiles
 C_SOURCES = \
 	src/kernel.c \
 	src/console.c \
+	src/keyboard.c \
+	src/shell.c \
 	src/arch/x86/gdt.c \
 	src/arch/x86/idt.c \
 	src/arch/x86/pic.c \

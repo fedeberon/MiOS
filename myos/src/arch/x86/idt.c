@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <kernel/console.h>
+#include <kernel/keyboard.h>
 #include <x86/idt.h>
 #include <x86/io.h>
 #include <x86/pic.h>
@@ -180,6 +181,9 @@ void isr_handler(interrupt_frame_t* frame) {
 
     if (frame->int_no == 32U) {
         pit_on_tick();
+    }
+    if (frame->int_no == 33U) {
+        keyboard_handle_irq();
     }
 
     if (frame->int_no >= 32U && frame->int_no <= 47U) {
